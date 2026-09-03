@@ -1,0 +1,13 @@
+{
+  "name": "test-output-lint",
+  "version": "0.1.0",
+  "description": "Lints test source files for patterns that corrupt or obscure unit test output",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "lint": "node --experimental-strip-types src/cli.ts"
+  }
+}
