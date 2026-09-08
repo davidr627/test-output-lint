@@ -84,7 +84,10 @@ Node's own standard library.
 
 ## Status
 
-Early skeleton. Rules are line-based regex matches, so they don't yet
-see across multiple lines — a multi-line empty test body or a title
-built from a template literal won't be caught. See the rule table
-above for what's covered today.
+Early skeleton. Rules are line-based regex matches, not a real parser,
+so a few things still slip through: a title built from a template
+literal won't be matched, and duplicate-title checking looks at the
+whole file rather than per-`describe` block. `no-empty-test` does
+track brace depth across lines, so a body spread over several lines
+is caught the same as a one-liner. See the rule table above for what's
+covered today.
