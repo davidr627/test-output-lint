@@ -28,6 +28,7 @@ const CONSOLE_RE = /\bconsole\.(log|debug|info|warn|error)\s*\(/;
 const EMPTY_TEST_START_RE =
   /\b(it|test)\s*\(\s*(['"`]).*?\2\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{/;
 const TEST_TITLE_RE = /\b(it|test)\s*\(\s*(['"`])((?:\\.|(?!\2).)*)\2/;
+const DESCRIBE_RE = /\b(describe|context)\s*\(\s*(['"`])((?:\\.|(?!\2).)*)\2/;
 
 function lineHits(lines: string[], pattern: RegExp, message: string): Hit[] {
   const hits: Hit[] = [];
@@ -136,24 +137,51 @@ export const rules: Rule[] = [
   {
     id: "no-duplicate-title",
     severity: "warning",
-    description: "two tests in the same file share a title",
+    description: "two tests in the same describe block share a title",
     check(lines) {
-      const seen = new Map<string, number>();
+      // Tracks a stack of "seen title" maps, one per describe/context block,
+      // so the same title in two different describes (a common pattern for
+      // shared test names like "returns the default") isn't flagged. Scope
+      // boundaries are inferred from brace depth: a describe(...) call is
+      // assumed to open its block on the same line, which covers the
+      // overwhelming majority of real test files without a real parser.
       const hits: Hit[] = [];
+      const stack: { depth: number; seen: Map<string, number> }[] = [
+        { depth: 0, seen: new Map() },
+      ];
+      let depth = 0;
+
       lines.forEach((text, index) => {
-        const match = TEST_TITLE_RE.exec(text);
-        if (!match) return;
-        const title = match[3];
-        const firstLine = seen.get(title);
-        if (firstLine !== undefined) {
-          hits.push({
-            line: index + 1,
-            message: `duplicate test title "${title}" (first seen on line ${firstLine}); a failure won't tell them apart`,
-          });
-        } else {
-          seen.set(title, index + 1);
+        const testMatch = TEST_TITLE_RE.exec(text);
+        const describeMatch = DESCRIBE_RE.exec(text);
+
+        if (testMatch) {
+          const title = testMatch[3];
+          const scope = stack[stack.length - 1];
+          const firstLine = scope.seen.get(title);
+          if (firstLine !== undefined) {
+            hits.push({
+              line: index + 1,
+              message: `duplicate test title "${title}" (first seen on line ${firstLine}); a failure won't tell them apart`,
+            });
+          } else {
+            scope.seen.set(title, index + 1);
+          }
+        }
+
+        const opens = (text.match(/\{/g) ?? []).length;
+        const closes = (text.match(/\}/g) ?? []).length;
+        depth += opens - closes;
+
+        while (stack.length > 1 && depth < stack[stack.length - 1].depth) {
+          stack.pop();
+        }
+
+        if (describeMatch) {
+          stack.push({ depth, seen: new Map() });
         }
       });
+
       return hits;
     },
   },

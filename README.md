@@ -73,7 +73,7 @@ The process exits with code `1` if any finding is `error` severity,
 | `no-empty-test` | error | one-line test bodies with nothing in them |
 | `no-skip` | warning | `it.skip` / `test.skip` / `xit` / `xdescribe` |
 | `no-console` | warning | `console.log`/`warn`/`error`/`debug`/`info` inside a test |
-| `no-duplicate-title` | warning | two tests in one file sharing a title |
+| `no-duplicate-title` | warning | two tests in the same `describe` block sharing a title |
 
 ## Requirements
 
@@ -86,8 +86,9 @@ Node's own standard library.
 
 Early skeleton. Rules are line-based regex matches, not a real parser,
 so a few things still slip through: a title built from a template
-literal won't be matched, and duplicate-title checking looks at the
-whole file rather than per-`describe` block. `no-empty-test` does
-track brace depth across lines, so a body spread over several lines
-is caught the same as a one-liner. See the rule table above for what's
-covered today.
+literal won't be matched, and duplicate-title scoping assumes a
+`describe(...)` call opens its block on the same line, which covers
+real files but isn't a guarantee. `no-empty-test` does track brace
+depth across lines, so a body spread over several lines is caught the
+same as a one-liner. See the rule table above for what's covered
+today.
